@@ -336,7 +336,99 @@
     this.serverStatus = this.server.status;
     }
     ```
+- Now in the UsersComponent we can add a routerLink to in the users list using the user arrays user.id and user.name as which wll look into the app module to find the right path upon clicking this link in ther users html we will be redirected to the exact user with id and name as shown below.
+    ```ts
+    //users html
+    <a
+      [routerLink]="['/users', user.id, user.name]" // routerlink added
+        href="#"
+        class="list-group-item"
+        *ngFor="let user of users">
+        {{ user.name }}
+    </a>
+    ```
+- A similar work can be done in the servers html with providing link to get redirected to the single server but along with it we need to providw a fitting path in the appRoutes of our appModule.ts
+    ```ts
+    // inside servers html
+    <a
+        [routerLink]="['/servers', server.id]"
+        [queryParams]="{allowEdit: '1'}"
+        fragment="loading"
+        href="#"
+        class="list-group-item"
+        *ngFor="let server of servers">
+        {{ server.name }}
+    </a>
+    // inside appmodule
+    const appRoutes: Routes = [
+    {path: '',component: HomeComponent},
+    {path: 'users', component: UsersComponent},
+    {path: 'users/:id/:name', component: UserComponent},
+    {path: 'servers', component: ServersComponent},
+    {path: 'servers/:id', component: ServerComponent}, // added for the router link
+    {path: 'servers/:id/edit', component: EditServerComponent}
+    ]
+    // inside the single server ts
+    ngOnInit() {
+    const id = this.route.snapshot.params['id'];
+    this.server = this.serversService.getServer(id);
+    this.route.params
+      .subscribe(
+        (params: Params) => {
+          this.server = this.serversService.getServer(params['id']);
+        }
+      );
+    }
+    ```
+- If we pass a parameter from the url then it will always be a string because our whole url is simply just text so whatever we are trying to pass to our function from the params id it will be 100% a string. So if we try to search a server by this string id then it will go to the servers service where we have defined our server array but there it will not find the id 1 which is a string because there we have kept id as a number. So we simply need to convert this string id to a number by placing a + sign before it.
+    ```ts
+    ngOnInit() {
+    const id = +this.route.snapshot.params['id']; // added +
+    this.server = this.serversService.getServer(id);
+    this.route.params
+      .subscribe(
+        (params: Params) => {
+          this.server = this.serversService.getServer(+params['id']); // added +
+        }
+      );
+    }
+    ```
+- But now upon clicking on the servers and users a new page is getting loaded but we want them to get loaded just beside the list of servers or beside the users menu and for that we need some nested routing or some kind of child routes to have router inside a router
+    ```ts
+    const appRoutes: Routes = [
+    {path: '',component: HomeComponent},
+    {path: 'users', component: UsersComponent},
+    {path: 'users/:id/:name', component: UserComponent},
+    {path: 'servers', component: ServersComponent},
+    {path: 'servers/:id', component: ServerComponent},
+    {path: 'servers/:id/edit', component: EditServerComponent}
+    ]
+    ```
+- Like shown in the above we have 3 paths starting wth the same name that is servers 2 and users. So to avoid doing like this we can add another property children in the servers path where children takes another array of routes like shown below
+    ```ts
+    const appRoutes: Routes = [
+        {path: '',component: HomeComponent},
+        {path: 'users', component: UsersComponent},
+        {path: 'users/:id/:name', component: UserComponent},
+        {path: 'servers', component: ServersComponent, children: [
+            {path: ':id', component: ServerComponent},
+            {path: ':id/edit', component: EditServerComponent}
+        ]},  
+    ]
+    ```
+- But now upon clicking on any of the server in the list of the server it will throw an error that it *cannot find primary outlet to 'ServerComponent'* because the only router-outlet in our code is in the app.component.html and that is reserved for the routes only on the top level but the child routes of the app-servers need a separate outlet because they can't override the servers component instead they should be loaded nested into this servers component.
+- So in the servers.html we need to add router-outlet which now adds a new hook which will be used on all child routes of the routes being loaded of the servers component which ofcourse is our /servers route. So now all the child routes will be loaded in place of router-outlet now as shown below.
+    ```ts
+    // in the html of servers
+    <div class="col-xs-12 col-sm-4">
+    /*<app-edit-server></app-edit-server>
+    <hr>
+    <app-server></app-server>*/
+    <router-outlet></router-outlet>
+    </div>
+    ```
 - 
+
 
 
 
