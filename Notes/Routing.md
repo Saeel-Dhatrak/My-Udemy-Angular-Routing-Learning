@@ -427,7 +427,94 @@
     <router-outlet></router-outlet>
     </div>
     ```
+- Now the similar can be done with the users along with changing the app-user to router-outlet in the user.component.html
+    ```ts
+    const appRoutes: Routes = [
+        {path: '',component: HomeComponent},
+        {path: 'users', component: UsersComponent, children: [
+            {path: ':id/:name', component: UserComponent},
+        ]},
+        {path: 'servers', component: ServersComponent, children: [
+            {path: ':id', component: ServerComponent},
+            {path: ':id/edit', component: EditServerComponent}
+        ]},  
+    ]
+    ```
+- Now lets add a edit button when we load a server and upon clicking on this edit button which should gett navigated to the esit server page along with the allow edit
+    ```ts
+    //html of single server
+    <button class="btn btn-primary" (click)="onEdit()">Edit Server</button>
+    // ts of single server  
+    onEdit(){
+        // we can use absolute path
+        this.router.navigate(['/servers', this.server.id, 'edit']);
+        // but since we are already in the server component we can use the reltive path
+        this.router.navigate(['edit'], {relativeTo: this.route})
+    }
+    ```
+- Upon loading the list the url which get **http://localhost:4200/servers/2?allowEdit=1#loading** is like this which contains queryparams clearly stating information to about aloowEdit. But as soon as we click on any of the servers from the list we loose all the information as the url forms like this **http://localhost:4200/servers/2/edit**. So to avoid this behaviour we need to set queryParams in such a way that they should check whether the clicked server is allowed to edit or not.
+    ```ts
+    <a
+        [routerLink]="['/servers', server.id]"
+        //[queryParams]="{allowEdit: '1'}"
+        [queryParams]="{allowEdit: server.id === 3 ? '1' : '0'}"
+        // so if the server id is 3 then we will allow it to edit othrwise we will set it to 0
+        fragment="loading"
+        href="#"
+        class="list-group-item"
+        *ngFor="let server of servers">
+        {{ server.name }}
+      </a>
+      ```
+- And now in edit server ts we want to be able to retrieve our query params so we will have a new allowEdit property which will be set to false initially and in the subscribe method of the queryparams whenever the params get changes we will set allowEdit = queryparams as shown below
+    ```ts
+    export class EditServerComponent implements OnInit {
+    server: {id: number, name: string, status: string};
+    allowEdit = false; // added newly
+
+    ngOnInit() {  
+        this.route.queryParams.subscribe(
+            (queryParams: Params) => {
+                this.allowEdit = queryParams['allowEdit'] === '1' ? true : false;
+            } // Added new
+        );
+        this.route.fragment.subscribe();
+    }
+    // and now in the html of the edit server we could simply add a heading with *ngIf as shown below
+    <h4 *ngIf="!allowEdit">You're not allowed to edit!</h4>
+    <div *ngIf="allowEdit">
+    <div class="form-group">
+        <label for="name">Server Name</label>
+        <input
+        type="text"
+        id="name"
+        class="form-control"
+        [(ngModel)]="serverName">
+    </div>
+    <div class="form-group">
+        <label for="status">Server Status</label>
+        <select
+        id="status"
+        class="form-control"
+        [(ngModel)]="serverStatus">
+        <option value="online">Online</option>
+        <option value="offline">Offline</option>
+        </select>
+    </div>
+    <button class="btn btn-primary" (click)="onUpdateServer()">Update Server</button>
+    </div>
+    ```
+- Now we have done everything that will stop the user to edit the server but still we are not getting what we want to achieve because as soon as we click in the EditServer button we loose our queryParams and thats why we will always get YOU'RE ARE NOT ALLOWED TO EDIT!
+- So to preserve our queryParams in the server ts on the edit button function where we navigate we can pass another property to the js object we used to configure our application which is **queryParamsHandling** property 
+- **queryParamsHandling** property takes a string as a value for example it will take *merge* which will merge our old queryParams with any new we might add here. But we don't add any new ones so we can choose *preserve* which will override the default behaviour which is to simply drop them and will make sure that the old ones are kept.
+    ```ts
+    onEdit(){
+    this.router.navigate(['edit'], {relativeTo: this.route, queryParamsHandling: 'preserve'})
+    }
+    ```
 - 
+
+ 
 
 
 
